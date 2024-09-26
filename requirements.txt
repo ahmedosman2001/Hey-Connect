@@ -1,3 +1,4 @@
+
 transformers
 bitsandbytes
 torch==2.1.1
@@ -9,4 +10,8 @@ flask-cors
 onnxruntime
 dimits
 opencv-python
-flask-cors
+supervision
+ultralytics
+diffusers 
+scipy 
+matplotlib 

@@ -118,7 +118,7 @@ def tts():
     if 'text' not in request.form:
         return jsonify({"message": "No text part in the request."}), 400
     text = request.form['text']
-    out_bin = dt.text_2_audio_file(text, "test", "wav")  # Replace with your TTS logic
+    out_bin = dt.text_2_audio_file(text, "test", "wav")
     return Response(out_bin, mimetype="audio/wav")
 
 

@@ -1,0 +1,11 @@
+transformers
+bitsandbytes
+torch==2.1.1
+torchvision
+torchaudio
+torchtext
+flask
+flask-cors
+onnxruntime
+dimits
+opencv-python

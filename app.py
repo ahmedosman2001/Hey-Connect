@@ -1,4 +1,3 @@
-# app.py
 import torch
 import os
 from PIL import Image
@@ -8,6 +7,7 @@ from transformers import pipeline, LlavaNextProcessor, LlavaNextForConditionalGe
 from transformers.utils import is_flash_attn_2_available
 from werkzeug.utils import secure_filename
 from customTextToSpeech import Dimits
+from flask_cors import CORS
 
 # Image captioning setup
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
@@ -37,6 +37,24 @@ CORS(app)  # Enable CORS for all routes
 UPLOAD_FOLDER = '/tmp'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+@app.route('/')
+def home():
+    return render_template('query-based_interaction_use_case.html')
+
+@app.route('/auto')
+def auto():
+    return render_template('passive_description_use_case.html')
+
+@app.route('/StartAudio')
+def startaudio():
+    print("START")
+    return "Hello, Start!"
+
+@app.route('/StoptAudio')
+def stopaudio():
+    print("STOP")
+    return "Hello, Stop!"
+
 @app.route("/whisper", methods=["POST"])
 def whisper():
     if 'file' not in request.files:
@@ -54,29 +72,45 @@ def whisper():
 
 @app.route("/caption", methods=["POST"])
 def caption():
-    if 'file' not in request.files:
-        return jsonify({"message": "No file part in the request."}), 400
+    if 'file' not in request.files or 'text' not in request.form:
+        return jsonify({"message": "Missing file or text in the request."}), 400
+    
     file = request.files['file']
+    prompt_text = request.form['text'] 
+
     if file.filename == '':
         return jsonify({"message": "No file selected for uploading."}), 400
+    
     if file:
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         image = Image.open(filepath).convert("RGB")
+
+        # Use the provided prompt_text instead of the hardcoded one
         conversation = [
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "What is shown in this image?"},
+                    {"type": "text", "text": prompt_text}, # Dynamic prompt
                     {"type": "image"},
                 ],
             },
         ]
+        
         prompt = processor.apply_chat_template(conversation, add_generation_prompt=True)
         inputs = processor(images=image, text=prompt, return_tensors="pt").to("cuda:0")
         output = model.generate(**inputs, max_new_tokens=100)
-        return jsonify({"message": processor.decode(output[0], skip_special_tokens=True)})
+        decoded_output = processor.decode(output[0], skip_special_tokens=True)
+
+        # Extract text after "ASSISTANT:"
+        assistant_index = decoded_output.find("ASSISTANT:")
+        if assistant_index != -1:
+            caption_text = decoded_output[assistant_index + len("ASSISTANT:"):].strip()  # Use strip() instead of trim()
+        else:
+            caption_text = decoded_output  # Fallback if "ASSISTANT:" is not found
+
+        return jsonify({"message": caption_text})
 
 
 @app.route("/tts", methods=["POST"])
@@ -89,5 +123,8 @@ def tts():
 
 
 
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000) 
+    app.run(host="0.0.0.0", port="4000", debug=True, ssl_context=('ssl/server.crt', 'ssl/server.key'))
+
+

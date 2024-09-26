@@ -9,3 +9,4 @@ flask-cors
 onnxruntime
 dimits
 opencv-python
+flask-cors
